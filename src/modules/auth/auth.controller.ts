@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { AuthService } from "./auth.service.js";
+import { cookieOptions } from "../../config/cookie.js";
 
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -7,9 +8,30 @@ export class AuthController {
   register = async (req: Request, res: Response) => {
     const result = await this.authService.register(req.body);
     res.status(200).send(result);
-  }
-    login = async (req: Request, res: Response) => {
+  };
+
+  login = async (req: Request, res: Response) => {
     const result = await this.authService.login(req.body);
+
+    res.cookie("accessToken", result.accessToken, cookieOptions);
+    res.cookie("refreshToken", result.refreshToken, cookieOptions);
+
     res.status(200).send(result);
+  };
+
+  logout = async (req: Request, res: Response) => {
+    const result = await this.authService.logout(req.cookies.refreshToken);
+
+    res.clearCookie("accessToken", cookieOptions);
+    res.clearCookie("refreshToken", cookieOptions);
+
+    res.status(200).send(result);
+  };
+  refresh = async (req: Request, res: Response) => {
+    const result = await this.authService.refresh(req.cookies.refreshToken);
+
+    res.cookie("accessToken", result.accessToken, cookieOptions);
+
+    res.status(200).send({ message: "Refresh success" });
   };
 }

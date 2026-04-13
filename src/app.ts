@@ -9,6 +9,8 @@ import { AuthService } from "./modules/auth/auth.service.js";
 import { AuthController } from "./modules/auth/auth.controller.js";
 import { AuthRouter } from "./modules/auth/auth.router.js";
 import { AuthMiddleware } from "./middlewares/auth.middleware.js";
+import cookieParser from "cookie-parser";
+import { corsoptions } from "./config/cors.js";
 
 export class App {
   app: Express;
@@ -21,8 +23,9 @@ export class App {
   }
 
   private configure() {
-    this.app.use(cors());
+    this.app.use(cors(corsoptions));
     this.app.use(express.json());
+    this.app.use(cookieParser());
   }
 
   private registerModules() {

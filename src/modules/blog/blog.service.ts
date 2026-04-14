@@ -1,14 +1,50 @@
-import { PrismaClient } from "../../generated/prisma/client.js";
+import { Prisma, PrismaClient } from "../../generated/prisma/client.js";
 import { ApiError } from "../../utils/api-error.js";
 import { generateSlug } from "../../utils/generate-slug.js";
 import { CloudinaryService } from "../auth/cloudinary/cloudinary.js";
+
 import { CreateBlogDTO } from "./dto/create-blog.dto.js";
+import { GetBLogsDTO } from "./dto/get-blogs.dto.js";
 
 export class BlogService {
   constructor(
     private prisma: PrismaClient,
     private cloudinaryService: CloudinaryService,
   ) {}
+
+getBlogs = async (query: GetBLogsDTO) => {
+  const { page, sortBy, sortOrder, take, search } = query;
+
+  const whereClause: Prisma.BlogWhereInput = {};
+
+  if (search) {
+    whereClause.title = { contains: search, mode: "insensitive" };
+  }
+
+  const blogs = await this.prisma.blog.findMany({
+    where: whereClause,
+    take: take,
+    skip: (page - 1) * take,
+    orderBy: { [sortBy]: sortOrder },
+    include: {
+      user: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  const total = await this.prisma.blog.count({
+    where: whereClause,
+  });
+
+  return {
+    data: blogs,
+    meta: { page, take, total },
+  };
+};
+
 
   createBlog = async (
     body: CreateBlogDTO,
@@ -23,14 +59,15 @@ export class BlogService {
 
     const slug = generateSlug(body.title);
 
-    const { secure_url} = await this.cloudinaryService.upload(thumbnail);
-    await this.prisma.blog.create({
-        data:{
-            ...body,
-            slug,
-            thumbnail: secure_url,
-            userId : userId,
-        }
-    })
+    const { secure_url } = await this.cloudinaryService.upload(thumbnail);
+
+    return await this.prisma.blog.create({
+      data: {
+        ...body,
+        slug,
+        thumbnail: secure_url,
+        userId: userId,
+      },
+    });
   };
 }

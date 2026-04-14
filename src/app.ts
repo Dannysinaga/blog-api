@@ -14,6 +14,11 @@ import { SampleService } from "./modules/sample/sample.service.js";
 import { globalError, notFoundError } from "./utils/errors.js";
 import { ValidationMiddleware } from "./middlewares/validation.middelware.js";
 import { MailService } from "./modules/mail/mail.service.js";
+import { CloudinaryService } from "./modules/auth/cloudinary/cloudinary.js";
+import { BlogService } from "./modules/blog/blog.service.js";
+import { BlogController } from "./modules/blog/blog.controller.js";
+import { UploadMiddleware } from "./middlewares/upload.middleware.js";
+import { BlogRouter } from "./modules/blog/blog.router.js";
 
 export class App {
   app: Express;
@@ -33,25 +38,36 @@ export class App {
 
   private registerModules() {
     // services
-    const mailService= new MailService();
+    const mailService = new MailService();
+    const cloudinaryService = new CloudinaryService();
     const sampleService = new SampleService(prisma);
     const authService = new AuthService(prisma, mailService);
+    const blogservice = new BlogService(prisma, cloudinaryService);
 
     // controllers
     const sampleController = new SampleController(sampleService);
     const authController = new AuthController(authService);
+    const blogcontroller = new BlogController(blogservice);
 
     // middlewares
     const authMiddleware = new AuthMiddleware();
     const validationMiddleware = new ValidationMiddleware();
+    const uploadMiddleware = new UploadMiddleware();
 
     // routes
     const sampleRouter = new SampleRouter(sampleController, authMiddleware);
     const authRouter = new AuthRouter(authController, validationMiddleware);
+    const blogRouter = new BlogRouter(
+      blogcontroller,
+      authMiddleware,
+      uploadMiddleware,
+      validationMiddleware,
+    );
 
     // entry point
     this.app.use("/samples", sampleRouter.getRouter());
     this.app.use("/auth", authRouter.getRouter());
+    this.app.use("/blogs", blogRouter.getRouter());
   }
 
   private errors() {

@@ -19,6 +19,9 @@ import { SampleController } from "./modules/sample/sample.controller.js";
 import { SampleRouter } from "./modules/sample/sample.router.js";
 import { SampleService } from "./modules/sample/sample.service.js";
 import { globalError, notFoundError } from "./utils/errors.js";
+import { RedisService } from "./modules/redis/redis.service.js";
+import { initScheduler } from "./scripts/index.js";
+import { loggerHttp } from "./lib/logger-http.js";
 
 export class App {
   app: Express;
@@ -28,10 +31,12 @@ export class App {
     this.configure();
     this.registerModules();
     this.errors();
+    initScheduler();
   }
 
   private configure() {
     this.app.use(cors(corsOptions));
+    this.app.use(loggerHttp)
     this.app.use(express.json());
     this.app.use(cookieParser());
   }
@@ -39,8 +44,9 @@ export class App {
   private registerModules() {
     // services
     const mailService = new MailService();
+    const redsService = new RedisService
     const cloudinaryService = new CloudinaryService();
-    const sampleService = new SampleService(prisma);
+    const sampleService = new SampleService(prisma, redsService);
     const authService = new AuthService(prisma, mailService);
     const blogService = new BlogService(prisma, cloudinaryService);
 
